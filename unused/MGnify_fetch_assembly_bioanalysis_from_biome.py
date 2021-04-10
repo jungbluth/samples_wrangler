@@ -12,8 +12,9 @@ def main():
   biome=sys.argv[1]
   (front_url, back_url) = prep_url(biome)
   (data,links)=fetch_data(front_url, back_url)
-  write_data_to_list(biome, "assembly_id_", data)
-  write_data_to_list(biome, "assembly_id_links_", links)
+  if data != "NA" and links != "NA":
+    write_data_to_list(biome, "assembly_id_", data)
+    write_data_to_list(biome, "assembly_id_links_", links)
 
 def prep_url(biome):
   base_url = 'https://www.ebi.ac.uk/metagenomics/api/v1/assemblies?'
@@ -30,25 +31,33 @@ def fetch_data(front_url, back_url):
   url = front_url + '1' + back_url
   # first data pull required to get number of pages
   result = send_request_return_json_data(url, headers)
-  num_pages = result['meta']['pagination']['pages']
-  for i in range(num_pages):
-    if i == 0: # first page already retrieved
-      print("url is {}".format(url))
-      for j in range(len(result['data'])):
-        data.append(result['data'][j]['id'])
-        links.append(result['data'][j]['relationships']['analyses']['links']['related'])
-    else:
-      url = front_url + str(1 + i) + back_url
-      result = send_request_return_json_data(url, headers)
-      print("url is {}".format(url))
-      for k in range(len(result['data'])):
-        data.append(result['data'][k]['id'])
-        links.append(result['data'][k]['relationships']['analyses']['links']['related'])
+  if result != "NA":
+    num_pages = result['meta']['pagination']['pages']
+    for i in range(num_pages):
+      if i == 0: # first page already retrieved
+        print("url is {}".format(url))
+        for j in range(len(result['data'])):
+          data.append(result['data'][j]['id'])
+          links.append(result['data'][j]['relationships']['analyses']['links']['related'])
+      else:
+        url = front_url + str(1 + i) + back_url
+        result = send_request_return_json_data(url, headers)
+        print("url is {}".format(url))
+        for k in range(len(result['data'])):
+          data.append(result['data'][k]['id'])
+          links.append(result['data'][k]['relationships']['analyses']['links']['related'])
+  else:
+    data = "NA"
+    links = "NA"
   return data, links
 
 def send_request_return_json_data(url, headers):
   r = requests.get(url, headers=headers)
-  result=r.json()
+  try:
+    result=r.json()
+  except:
+    print("Invalid JSON returned, skipping.")
+    result="NA"
   return result
 
 def write_data_to_list(biome, filename, data):
